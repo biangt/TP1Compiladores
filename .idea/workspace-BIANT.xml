@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="08e1ca62-01cc-4842-9a0a-884702dd3699" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0003857746152571" />
+      <entry key="MS500" value="1.2889236174411869" />
+      <entry key="S2" value="3.8763310410945606" />
+      <entry key="S5" value="7.734051836308261" />
+      <entry key="S10" value="14.041807774245026" />
+      <entry key="S30" value="32.66700025664537" />
+      <entry key="S60" value="49.405081332684595" />
+      <entry key="M2" value="65.32116859446879" />
+      <entry key="M5" value="79.57032166765468" />
+      <entry key="M10" value="85.44048941890769" />
+      <entry key="M15" value="87.54599239074248" />
+      <entry key="M30" value="89.73133079057887" />
+      <entry key="H1" value="90.85502432966649" />
+      <entry key="H2" value="91.42482324782742" />
+      <entry key="H4" value="91.71173577763926" />
+      <entry key="D1" value="91.95186178672682" />
+      <entry key="W1" value="91.99312080199697" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.009959371870403128" />
+      <entry key="MS500" value="0.5491630886204149" />
+      <entry key="S2" value="3.5027515590961715" />
+      <entry key="S5" value="7.550281331571497" />
+      <entry key="S10" value="13.939098525934744" />
+      <entry key="S30" value="32.62274863332276" />
+      <entry key="S60" value="49.37834235662202" />
+      <entry key="M2" value="65.30572349038198" />
+      <entry key="M5" value="79.56343332506383" />
+      <entry key="M10" value="85.43690256910912" />
+      <entry key="M15" value="87.54356734079937" />
+      <entry key="M30" value="89.73010079515086" />
+      <entry key="H1" value="90.8544048555226" />
+      <entry key="H2" value="91.42451237773749" />
+      <entry key="H4" value="91.71158005758133" />
+      <entry key="D1" value="91.95183579364847" />
+      <entry key="W1" value="91.99311708772503" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="3IjI6RNNrroFxFyfKdmZuFAh73T" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Main.executor": "Run",
+    "Maven.proyecto-jflex [clean].executor": "Run",
+    "Maven.proyecto-jflex [compile].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/biann/OneDrive/Documentos/Facu/Facultad 2026/SEGUNDO CUATRI/Compiladores/Proyecto-jflex",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "C:/Users/biann/OneDrive/Escritorio/Facultad 2026/SEGUNDO CUATRI/Compiladores/Proyecto-jflex/src/main/java/org/Bianca/Main.java",
+    "settings.editor.selected.configurable": "configurable.group.editor"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="org.Bianca.Main" />
+      <module name="proyecto-jflex" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.Bianca.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.Main" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-a203e0a19954-intellij.indexing.shared.core-IU-262.10968.63" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.10968.63" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="08e1ca62-01cc-4842-9a0a-884702dd3699" name="Changes" comment="" />
+      <created>1788271379121</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1788271379121</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>
