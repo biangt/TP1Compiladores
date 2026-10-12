@@ -1,0 +1,1 @@
+bool main(){bool ok; int n; n = (2+3)*4; ok = true; return ok;}

@@ -1,0 +1,108 @@
+/* ============================================================
+   parser.cup  -  PARSER (puntos 1, 4 y 5)
+   CUP lee este archivo y genera parser.java y sym.java.
+   Verifica que los tokens respeten la gramática y, mientras
+   tanto, construye el AST (cada regla crea un nodo).
+   ============================================================ */
+
+package org.Bianca;
+
+import java_cup.runtime.*;
+import java.util.*;
+import org.Bianca.Ast.*;
+
+/* Código Java que se copia dentro de la clase parser: manejo de errores sintácticos */
+parser code {:
+    @Override
+    public void report_error(String mensaje, Object info) {
+        StringBuilder m = new StringBuilder("Error sintáctico");
+        if (info instanceof Symbol s) {
+            if (s.left >= 0) {
+                m.append(" en línea ").append(s.left + 1).append(", columna ").append(s.right + 1);
+            }
+            m.append(": no se esperaba ")
+             .append(s.value == null ? "el fin del archivo" : "'" + s.value + "'");
+        }
+        throw new Errores.Sintactico(m.toString());
+    }
+
+    @Override
+    public void report_fatal_error(String mensaje, Object info) {
+        report_error(mensaje, info);
+    }
+:};
+
+/* ---------- Terminales: son los tokens que produce el Lexer ---------- */
+terminal INT, BOOL, VOID, MAIN, RETURN, TRUE, FALSE;
+terminal PLUS, TIMES, ASSIGN;
+terminal LPAREN, RPAREN, LBRACE, RBRACE, SEMI;
+terminal Integer NUMBER;   /* este token trae un Integer como valor */
+terminal String ID;        /* este token trae el nombre como String */
+
+/* ---------- No terminales: cada uno devuelve un objeto del AST ---------- */
+non terminal Programa programa;
+non terminal Tipo tipo, tipoMain;
+non terminal List<Declaracion> declaraciones;
+non terminal Declaracion declaracion;
+non terminal List<Sentencia> sentencias;
+non terminal Sentencia sentencia;
+non terminal Expr expr;
+
+/* ---------- Precedencia: resuelve la ambigüedad de E -> E + E | E * E ---------- */
+/* Las líneas de abajo tienen MÁS precedencia: TIMES se agrupa antes que PLUS. */
+precedence left PLUS;
+precedence left TIMES;
+
+/* ---------- Gramática ---------- */
+
+/* Un programa es una única función main:  tipo main ( ) { declaraciones sentencias } */
+programa ::= tipoMain:t MAIN LPAREN RPAREN LBRACE declaraciones:d sentencias:s RBRACE
+             {: RESULT = new Programa(t, d, s); :}
+           ;
+
+/* main puede devolver int, bool o nada (void) */
+tipoMain ::= tipo:t   {: RESULT = t; :}
+           | VOID     {: RESULT = Tipo.VOID; :}
+           ;
+
+tipo ::= INT          {: RESULT = Tipo.INT; :}
+       | BOOL         {: RESULT = Tipo.BOOL; :}
+       ;
+
+/* Una o más declaraciones */
+declaraciones ::= declaraciones:lista declaracion:d
+                  {: lista.add(d); RESULT = lista; :}
+                | declaracion:d
+                  {: List<Declaracion> lista = new ArrayList<>(); lista.add(d); RESULT = lista; :}
+                ;
+
+/* int x;   o   bool aux1; */
+declaracion ::= tipo:t ID:nombre SEMI
+                {: RESULT = new Declaracion(t, nombre, nombreleft + 1); :}
+              ;
+
+/* Cero o más sentencias */
+sentencias ::= sentencias:lista sentencia:s
+               {: lista.add(s); RESULT = lista; :}
+             |  /* vacío */
+               {: RESULT = new ArrayList<Sentencia>(); :}
+             ;
+
+/* x = expr;    return expr;    return; */
+sentencia ::= ID:nombre ASSIGN expr:e SEMI
+              {: RESULT = new Asignacion(new Var(nombre, nombreleft + 1), e, nombreleft + 1); :}
+            | RETURN:r expr:e SEMI
+              {: RESULT = new Retorno(e, rleft + 1); :}
+            | RETURN:r SEMI
+              {: RESULT = new Retorno(null, rleft + 1); :}
+            ;
+
+/* Expresiones: suma, producto, paréntesis, número, true/false y variable */
+expr ::= expr:a PLUS expr:b     {: RESULT = new Suma(a, b); :}
+       | expr:a TIMES expr:b    {: RESULT = new Mult(a, b); :}
+       | LPAREN expr:e RPAREN   {: RESULT = e; :}
+       | NUMBER:n               {: RESULT = new Num(n); :}
+       | TRUE                   {: RESULT = new Bool(true); :}
+       | FALSE                  {: RESULT = new Bool(false); :}
+       | ID:nombre              {: RESULT = new Var(nombre, nombreleft + 1); :}
+       ;
