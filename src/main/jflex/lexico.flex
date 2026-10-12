@@ -13,11 +13,20 @@ import java_cup.runtime.Symbol;
 
 /* ---------- Sección 2: opciones y macros ---------- */
 
-%class Lexer      /* la clase generada se llama Lexer */
-%unicode          /* entiende acentos y cualquier carácter Unicode */
-%line             /* habilita la variable yyline (nº de línea, desde 0) */
-%column           /* habilita la variable yycolumn (nº de columna, desde 0) */
-%cup              /* modo compatible con CUP: el Lexer devuelve objetos Symbol */
+/* Nombre de la clase que se genera: Lexer */
+%class Lexer
+
+/* Entiende acentos y cualquier carácter Unicode */
+%unicode
+
+/* Habilita la variable yyline (número de línea, desde 0) */
+%line
+
+/* Habilita la variable yycolumn (número de columna, desde 0) */
+%column
+
+/* Modo compatible con CUP: el Lexer devuelve objetos Symbol */
+%cup
 
 /* Código Java que se copia dentro de la clase Lexer */
 %{
