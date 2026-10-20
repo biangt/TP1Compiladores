@@ -1,6 +1,6 @@
 # Mini-compilador (Pre-Proyecto de Compiladores)
 
-Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semántica (tabla de símbolos) → intérprete / pseudo-assembly`.
+Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semántica (tabla de símbolos) → código de tres direcciones → intérprete / pseudo-assembly`.
 
 ## Cómo ejecutarlo
 
@@ -16,9 +16,19 @@ Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semánt
 | `src/main/jflex/lexico.flex` | 2 (expresiones regulares), 3 (analizador léxico) |
 | `Ast.java`, `ImprimirAst.java` | 5 (AST) |
 | `TablaSimbolos.java`, `Semantico.java` | 6 (tabla de símbolos y verificaciones) |
+| `GeneradorTresDirecciones.java`, `CodigoTresDirecciones.java`, `Instruccion.java`, `Operacion.java`, `Operando.java` | código intermedio de tres direcciones |
 | `Interprete.java` | 6 (evaluador) |
 | `GeneradorAsm.java` | 7 (pseudo-assembly) |
 | `Errores.java`, `Main.java` | manejo de errores / programa principal |
+
+## Errores que detecta la semántica
+
+1. Variable **redeclarada** (`int x; int x;`)
+2. Variable **no declarada** (`x = z + 1;`)
+3. Error de **tipo** (`x = true;`, `1 + true`, `return` de otro tipo): el mensaje muestra el valor/expresión completo.
+
+Programas de prueba: `ejemplos/error-variable-redeclarada.txt`, `error-variable-no-declarada.txt`,
+`error-tipos.txt`, `error-tipo-bool-en-suma.txt`, `error-tipo-num-a-bool.txt`, `error-tipo-return.txt`.
 
 ## Si modificas `parser.cup`
 

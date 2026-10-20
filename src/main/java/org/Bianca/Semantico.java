@@ -1,11 +1,18 @@
 package org.Bianca;
 
 import org.Bianca.Ast.*;
+import org.Bianca.TablaSimbolos.Simbolo;
 
 /**
  * Análisis semántico (nota del punto 6): arma la tabla de símbolos y verifica
- * que el programa tenga sentido: variables declaradas y tipos compatibles.
+ * que el programa tenga sentido. Detecta exactamente tres errores:
+ *
+ *   1. variable REDECLARADA      (la detecta TablaSimbolos.declarar)
+ *   2. variable NO DECLARADA     (la detecta TablaSimbolos.buscar)
+ *   3. error de TIPO             (la detecta esta clase: int/bool mezclados)
+ *
  * Recorre TODAS las sentencias, incluso las que están después de un return.
+ * Al terminar, cada nodo Declaracion y cada nodo Var quedó apuntando a su Simbolo.
  */
 public final class Semantico {
 
@@ -15,19 +22,20 @@ public final class Semantico {
     public static TablaSimbolos analizar(Programa p) {
         TablaSimbolos tabla = new TablaSimbolos();
 
-        // 1) Cada declaración agrega una entrada a la tabla
+        // 1) Cada declaración agrega una entrada a la tabla (y el nodo guarda su ficha)
         for (Declaracion d : p.declaraciones()) {
-            tabla.declarar(d.nombre(), d.tipo(), d.linea());
+            d.simbolo = tabla.declarar(d.nombre, d.tipo, d.linea);
         }
 
         // 2) Cada sentencia se revisa contra la tabla
         for (Sentencia s : p.sentencias()) {
             if (s instanceof Asignacion a) {
-                Tipo destino = resolver(a.variable(), tabla).tipo;         // tipo de la variable
+                Simbolo destino = resolver(a.variable(), tabla);           // la variable de la izquierda
                 Tipo origen = tipoDe(a.valor(), tabla);                    // tipo de la expresión
-                if (destino != origen) {
-                    throw new Errores.Semantico("Error semántico en línea " + a.linea() + ": no se puede asignar "
-                            + nombre(origen) + " a la variable '" + a.variable().nombre + "' de tipo " + nombre(destino));
+                if (destino.tipo != origen) {
+                    throw new Errores.Semantico("Error semántico en línea " + a.linea()
+                            + ": no se puede asignar '" + ImprimirAst.texto(a.valor()) + "' (" + nombre(origen)
+                            + ") a la variable '" + destino.nombre + "' de tipo " + nombre(destino.tipo));
                 }
             } else if (s instanceof Retorno r) {
                 verificarRetorno(p.tipoRetorno(), r, tabla);
@@ -40,7 +48,7 @@ public final class Semantico {
         if (esperado == Tipo.VOID) {
             if (r.valor() != null) {
                 throw new Errores.Semantico("Error semántico en línea " + r.linea()
-                        + ": main es void y no puede devolver un valor");
+                        + ": main es void y no puede devolver '" + ImprimirAst.texto(r.valor()) + "'");
             }
         } else if (r.valor() == null) {
             throw new Errores.Semantico("Error semántico en línea " + r.linea()
@@ -49,7 +57,8 @@ public final class Semantico {
             Tipo real = tipoDe(r.valor(), tabla);
             if (real != esperado) {
                 throw new Errores.Semantico("Error semántico en línea " + r.linea() + ": main devuelve "
-                        + nombre(esperado) + " pero se retorna " + nombre(real));
+                        + nombre(esperado) + " pero se retorna '" + ImprimirAst.texto(r.valor())
+                        + "' (" + nombre(real) + ")");
             }
         }
     }
@@ -65,11 +74,8 @@ public final class Semantico {
         if (e instanceof Var v) {
             return resolver(v, tabla).tipo;
         }
-        if (e instanceof Suma s) {
-            return tipoOperacion("+", s.izq(), s.der(), tabla);
-        }
-        if (e instanceof Mult m) {
-            return tipoOperacion("*", m.izq(), m.der(), tabla);
+        if (e instanceof OpBinaria op) {
+            return tipoOperacion(op, tabla);
         }
         throw new IllegalStateException("Nodo desconocido: " + e);
     }
@@ -78,17 +84,28 @@ public final class Semantico {
      * Busca la variable en la tabla (error si no fue declarada) y deja el resultado dentro del
      * nodo: así el árbol queda apuntando a la ficha de la variable.
      */
-    private static TablaSimbolos.Simbolo resolver(Var v, TablaSimbolos tabla) {
+    private static Simbolo resolver(Var v, TablaSimbolos tabla) {
         v.simbolo = tabla.buscar(v.nombre, v.linea);
         return v.simbolo;
     }
 
-    /** + y * solo operan enteros y dan un entero. */
-    private static Tipo tipoOperacion(String op, Expr izq, Expr der, TablaSimbolos tabla) {
-        if (tipoDe(izq, tabla) != Tipo.INT || tipoDe(der, tabla) != Tipo.INT) {
-            throw new Errores.Semantico("Error semántico: el operador '" + op + "' solo se puede usar con enteros");
+    /** + y * solo operan enteros y dan un entero. Si un operando es bool, el error muestra su valor completo. */
+    private static Tipo tipoOperacion(OpBinaria op, TablaSimbolos tabla) {
+        Tipo izq = tipoDe(op.izq(), tabla);
+        Tipo der = tipoDe(op.der(), tabla);
+        if (izq != Tipo.INT) {
+            throw errorOperando(op, op.izq(), izq);
+        }
+        if (der != Tipo.INT) {
+            throw errorOperando(op, op.der(), der);
         }
         return Tipo.INT;
+    }
+
+    private static Errores.Semantico errorOperando(OpBinaria op, Expr operando, Tipo tipo) {
+        return new Errores.Semantico("Error semántico en línea " + op.linea() + ": el operador '" + op.operador()
+                + "' solo se puede usar con enteros, pero '" + ImprimirAst.texto(operando) + "' es "
+                + nombre(tipo) + " (en la expresión '" + ImprimirAst.texto(op) + "')");
     }
 
     private static String nombre(Tipo t) {

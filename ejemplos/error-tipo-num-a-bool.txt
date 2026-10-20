@@ -1,0 +1,1 @@
+void main(){bool ok; ok = 5;}

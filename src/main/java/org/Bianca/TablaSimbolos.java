@@ -8,7 +8,17 @@ import java.util.Map;
 
 /**
  * Tabla de símbolos (punto 6): la "lista de invitados" del programa.
- * Guarda una entrada por cada variable declarada: su nombre, su tipo y su valor actual.
+ * Guarda una entrada (un Simbolo) por cada variable declarada.
+ *
+ * Cada Simbolo contiene:
+ *   - nombre    cómo se llama la variable                       (no cambia)
+ *   - tipo      int o bool                                      (no cambia)
+ *   - linea     en qué línea del programa se declaró            (no cambia)
+ *   - valor     su valor ACTUAL (Integer o Boolean)             (lo cambia el intérprete)
+ *   - asignada  si alguna vez se le asignó un valor             (lo cambia el intérprete)
+ *
+ * Los nodos del AST (Declaracion y Var) guardan un puntero a su Simbolo: por eso, después de la
+ * semántica, nadie vuelve a buscar por nombre. El nodo ya sabe cuál es su ficha.
  */
 public class TablaSimbolos {
 
@@ -16,30 +26,36 @@ public class TablaSimbolos {
     public static class Simbolo {
         public final String nombre;
         public final Tipo tipo;
+        public final int linea;       // línea de la declaración (para mensajes de error)
         public Object valor;          // valor actual (Integer o Boolean)
         public boolean asignada;      // ¿alguna vez se le asignó un valor?
 
-        Simbolo(String nombre, Tipo tipo) {
+        Simbolo(String nombre, Tipo tipo, int linea) {
             this.nombre = nombre;
             this.tipo = tipo;
+            this.linea = linea;
             this.valor = (tipo == Tipo.INT) ? (Object) 0 : (Object) false;  // valor inicial: 0 / false
             this.asignada = false;
         }
     }
 
-    // LinkedHashMap mantiene el orden en que se declararon las variables
+    // LinkedHashMap: búsqueda por nombre en tiempo constante, y recuerda el orden de declaración
     private final Map<String, Simbolo> simbolos = new LinkedHashMap<>();
 
-    /** Registra una variable nueva. Error si ya existía con ese nombre. */
-    public void declarar(String nombre, Tipo tipo, int linea) {
-        if (simbolos.containsKey(nombre)) {
+    /** Registra una variable nueva y devuelve su ficha. Error si ya existía con ese nombre. */
+    public Simbolo declarar(String nombre, Tipo tipo, int linea) {
+        Simbolo previo = simbolos.get(nombre);
+        if (previo != null) {
             throw new Errores.Semantico("Error semántico en línea " + linea
-                    + ": la variable '" + nombre + "' ya fue declarada");
+                    + ": la variable '" + nombre + "' ya fue declarada (primera declaración en línea "
+                    + previo.linea + ")");
         }
-        simbolos.put(nombre, new Simbolo(nombre, tipo));
+        Simbolo nuevo = new Simbolo(nombre, tipo, linea);
+        simbolos.put(nombre, nuevo);
+        return nuevo;
     }
 
-    /** Busca una variable. Error si nunca se declaró. */
+    /** Busca una variable por su nombre. Error si nunca se declaró. */
     public Simbolo buscar(String nombre, int linea) {
         Simbolo s = simbolos.get(nombre);
         if (s == null) {
@@ -58,7 +74,8 @@ public class TablaSimbolos {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (Simbolo s : simbolos.values()) {
-            sb.append(String.format("  %-8s tipo=%-5s valor=%s%n", s.nombre, s.tipo.name().toLowerCase(), s.valor));
+            sb.append(String.format("  %-8s tipo=%-5s línea=%-3d valor=%s%n",
+                    s.nombre, s.tipo.name().toLowerCase(), s.linea, s.valor));
         }
         return sb.toString();
     }

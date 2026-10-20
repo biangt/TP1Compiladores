@@ -98,8 +98,8 @@ sentencia ::= ID:nombre ASSIGN expr:e SEMI
             ;
 
 /* Expresiones: suma, producto, paréntesis, número, true/false y variable */
-expr ::= expr:a PLUS expr:b     {: RESULT = new Suma(a, b); :}
-       | expr:a TIMES expr:b    {: RESULT = new Mult(a, b); :}
+expr ::= expr:a PLUS:o expr:b   {: RESULT = new Suma(a, b, oleft + 1); :}
+       | expr:a TIMES:o expr:b  {: RESULT = new Mult(a, b, oleft + 1); :}
        | LPAREN expr:e RPAREN   {: RESULT = e; :}
        | NUMBER:n               {: RESULT = new Num(n); :}
        | TRUE                   {: RESULT = new Bool(true); :}

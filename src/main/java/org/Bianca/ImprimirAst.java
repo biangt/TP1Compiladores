@@ -11,7 +11,7 @@ public final class ImprimirAst {
         StringBuilder sb = new StringBuilder();
         sb.append("Programa (main devuelve ").append(p.tipoRetorno().name().toLowerCase()).append(")\n");
         for (Declaracion d : p.declaraciones()) {
-            linea(sb, 1, "Declaracion: " + d.tipo().name().toLowerCase() + " " + d.nombre());
+            linea(sb, 1, "Declaracion: " + d.tipo.name().toLowerCase() + " " + d.nombre);
         }
         for (Sentencia s : p.sentencias()) {
             if (s instanceof Asignacion a) {
@@ -43,6 +43,32 @@ public final class ImprimirAst {
             expresion(m.izq(), nivel + 1, sb);
             expresion(m.der(), nivel + 1, sb);
         }
+    }
+
+    /**
+     * Una expresión escrita como texto en una sola línea, para los mensajes de error.
+     * Los valores se muestran completos (true, false, 5, x...). Las operaciones anidadas
+     * llevan paréntesis, lo que deja a la vista cómo las agrupó el parser:  x + ((3 * 2) * y)
+     */
+    public static String texto(Expr e) {
+        return texto(e, false);
+    }
+
+    private static String texto(Expr e, boolean anidada) {
+        if (e instanceof Num n) {
+            return String.valueOf(n.valor());
+        }
+        if (e instanceof Bool b) {
+            return String.valueOf(b.valor());       // "true" / "false", nunca una abreviatura
+        }
+        if (e instanceof Var v) {
+            return v.nombre;
+        }
+        if (e instanceof OpBinaria op) {
+            String s = texto(op.izq(), true) + " " + op.operador() + " " + texto(op.der(), true);
+            return anidada ? "(" + s + ")" : s;
+        }
+        throw new IllegalStateException("Nodo desconocido: " + e);
     }
 
     private static void linea(StringBuilder sb, int nivel, String texto) {

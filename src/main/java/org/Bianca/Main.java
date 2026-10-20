@@ -11,6 +11,7 @@ import java.nio.file.Paths;
  * Programa principal: conecta todas las etapas del compilador.
  *
  *   texto -> Lexer -> tokens -> parser -> AST -> Semantico (tabla de símbolos)
+ *                                              -> GeneradorTresDirecciones (código intermedio)
  *                                              -> Interprete (ejecuta)
  *                                              -> GeneradorAsm (traduce)
  *
@@ -44,14 +45,18 @@ public class Main {
             // Etapa 3: semántica (arma la tabla de símbolos y verifica)
             TablaSimbolos tabla = Semantico.analizar(programa);
 
-            // Etapa 4a: interpretar
+            // Etapa 4a: código intermedio de tres direcciones (recorre el AST de las hojas a la raíz)
+            System.out.println("\n--- Código de tres direcciones ---");
+            System.out.print(GeneradorTresDirecciones.generar(programa));
+
+            // Etapa 4b: interpretar
             System.out.println("\n--- Ejecución (intérprete) ---");
             Object resultado = Interprete.ejecutar(programa);
             System.out.println("Resultado de main: " + (resultado == null ? "(sin valor)" : resultado));
             System.out.println("\n--- Tabla de símbolos (después de ejecutar) ---");
             System.out.print(tabla);
 
-            // Etapa 4b: generar pseudo-assembly (solo usa de la tabla los nombres y tipos)
+            // Etapa 4c: generar pseudo-assembly (solo usa de la tabla los nombres y tipos)
             System.out.println("\n--- Pseudo-assembly ---");
             System.out.print(GeneradorAsm.generar(programa, tabla));
 
