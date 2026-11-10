@@ -1,6 +1,6 @@
 # Mini-compilador (Pre-Proyecto de Compiladores)
 
-Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semántica (tabla de símbolos) → código de tres direcciones → intérprete / pseudo-assembly`.
+Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semántica (tabla de símbolos) → código de tres direcciones → intérprete / assembly x86-64`.
 
 ## Cómo ejecutarlo
 
@@ -18,7 +18,8 @@ Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semánt
 | `TablaSimbolos.java`, `Semantico.java` | 6 (tabla de símbolos y verificaciones) |
 | `GeneradorTresDirecciones.java`, `CodigoTresDirecciones.java`, `Instruccion.java`, `Operacion.java`, `Operando.java` | código intermedio de tres direcciones |
 | `Interprete.java` | 6 (evaluador) |
-| `GeneradorAsm.java` | 7 (pseudo-assembly) |
+| `GeneradorAsm.java` | 7 (pseudo-assembly de pila, versión anterior) |
+| `GeneradorAsm64.java` | assembly x86-64 (GNU), generado desde la lista de tres direcciones |
 | `Errores.java`, `Main.java` | manejo de errores / programa principal |
 
 ## Errores que detecta la semántica
@@ -40,3 +41,12 @@ java -jar java-cup-11b.jar -destdir src/main/java -parser parser -symbols sym sr
 
 CUP deja los dos archivos directamente en `src/main/java`; moverlos a `src/main/java/org/Bianca/`.
 `Lexer.java`, en cambio, lo regenera Maven solo.
+
+## Generar y ejecutar el assembly
+
+`Main` escribe el assembly en `salida/<nombre>.s`. Para ensamblarlo y correrlo (Linux / WSL / MinGW con gcc):
+
+```
+gcc salida/ejemplo4.s -o ejemplo4
+./ejemplo4 ; echo $?      # el valor que devuelve main queda como código de salida
+```

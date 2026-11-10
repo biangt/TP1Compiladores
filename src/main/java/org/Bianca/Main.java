@@ -5,6 +5,7 @@ import org.Bianca.Ast.Programa;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
@@ -13,7 +14,7 @@ import java.nio.file.Paths;
  *   texto -> Lexer -> tokens -> parser -> AST -> Semantico (tabla de símbolos)
  *                                              -> GeneradorTresDirecciones (código intermedio)
  *                                              -> Interprete (ejecuta)
- *                                              -> GeneradorAsm (traduce)
+ *                                              -> GeneradorAsm64 (assembly x86-64 desde la lista de 3 direcciones)
  *
  * Uso:  Main archivo1.txt archivo2.txt ...   (sin argumentos corre los ejemplos del enunciado)
  */
@@ -47,7 +48,8 @@ public class Main {
 
             // Etapa 4a: código intermedio de tres direcciones (recorre el AST de las hojas a la raíz)
             System.out.println("\n--- Código de tres direcciones ---");
-            System.out.print(GeneradorTresDirecciones.generar(programa));
+            CodigoTresDirecciones codigo = GeneradorTresDirecciones.generar(programa);
+            System.out.print(codigo);
 
             // Etapa 4b: interpretar
             System.out.println("\n--- Ejecución (intérprete) ---");
@@ -56,9 +58,16 @@ public class Main {
             System.out.println("\n--- Tabla de símbolos (después de ejecutar) ---");
             System.out.print(tabla);
 
-            // Etapa 4c: generar pseudo-assembly (solo usa de la tabla los nombres y tipos)
-            System.out.println("\n--- Pseudo-assembly ---");
-            System.out.print(GeneradorAsm.generar(programa, tabla));
+            // Etapa 5: assembly x86-64, generado recorriendo la lista de tres direcciones
+            System.out.println("\n--- Assembly x86-64 (GNU) ---");
+            String asm = GeneradorAsm64.generar(codigo, tabla);
+            System.out.print(asm);
+
+            // También se guarda en salida/<nombre>.s para ensamblarlo con gcc
+            Path carpeta = Paths.get("salida");
+            Files.createDirectories(carpeta);
+            String nombre = Paths.get(archivo).getFileName().toString().replaceAll("\\.[^.]*$", "");
+            Files.writeString(carpeta.resolve(nombre + ".s"), asm);
 
         } catch (Errores.ErrorCompilador e) {
             System.out.println("\n" + e.getMessage());
