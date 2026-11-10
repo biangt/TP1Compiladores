@@ -147,11 +147,20 @@ public final class GeneradorAsm64 {
      *   temporal   ->  -16(%rbp)
      */
     private String ubicacion(Operando o) {
-        return switch (o) {
-            case Operando.Constante c -> "$" + (c.valor() instanceof Boolean b ? (b ? 1 : 0) : c.valor());
-            case Operando.Variable v -> offsetVariable.get(v.simbolo()) + "(%rbp)";
-            case Operando.Temporal t -> offsetTemporal.get(t.numero()) + "(%rbp)";
-        };
+        if (o instanceof Operando.Constante c) {
+            Object valor = c.valor();
+            if (valor instanceof Boolean b) {
+                return "$" + (b ? 1 : 0);
+            }
+            return "$" + valor;
+        }
+        if (o instanceof Operando.Variable v) {
+            return offsetVariable.get(v.simbolo()) + "(%rbp)";
+        }
+        if (o instanceof Operando.Temporal t) {
+            return offsetTemporal.get(t.numero()) + "(%rbp)";
+        }
+        throw new IllegalStateException("Operando desconocido: " + o);
     }
 
     private void instr(String nombre, String operandos) {
