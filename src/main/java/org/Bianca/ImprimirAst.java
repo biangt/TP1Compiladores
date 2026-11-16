@@ -2,6 +2,8 @@ package org.Bianca;
 
 import org.Bianca.Ast.*;
 
+import java.util.List;
+
 /** Dibuja el AST como texto con sangría: cada nivel más adentro es un hijo del nodo de arriba. */
 public final class ImprimirAst {
 
@@ -13,18 +15,39 @@ public final class ImprimirAst {
         for (Declaracion d : p.declaraciones()) {
             linea(sb, 1, "Declaracion: " + d.tipo.name().toLowerCase() + " " + d.nombre);
         }
-        for (Sentencia s : p.sentencias()) {
+        sentencias(p.sentencias(), 1, sb);
+        return sb.toString();
+    }
+
+    /** Dibuja una lista de sentencias; los bloques de if / while se dibujan con esta misma función, un nivel más adentro. */
+    private static void sentencias(List<Sentencia> lista, int nivel, StringBuilder sb) {
+        for (Sentencia s : lista) {
             if (s instanceof Asignacion a) {
-                linea(sb, 1, "Asignacion: " + a.variable().nombre + " =");
-                expresion(a.valor(), 2, sb);
+                linea(sb, nivel, "Asignacion: " + a.variable().nombre + " =");
+                expresion(a.valor(), nivel + 1, sb);
             } else if (s instanceof Retorno r) {
-                linea(sb, 1, "Return");
+                linea(sb, nivel, "Return");
                 if (r.valor() != null) {
-                    expresion(r.valor(), 2, sb);
+                    expresion(r.valor(), nivel + 1, sb);
                 }
+            } else if (s instanceof Si si) {
+                linea(sb, nivel, "If");
+                linea(sb, nivel + 1, "Condicion:");
+                expresion(si.condicion(), nivel + 2, sb);
+                linea(sb, nivel + 1, "Entonces:");
+                sentencias(si.entonces(), nivel + 2, sb);
+                if (si.sino() != null) {
+                    linea(sb, nivel + 1, "Sino:");
+                    sentencias(si.sino(), nivel + 2, sb);
+                }
+            } else if (s instanceof Mientras m) {
+                linea(sb, nivel, "While");
+                linea(sb, nivel + 1, "Condicion:");
+                expresion(m.condicion(), nivel + 2, sb);
+                linea(sb, nivel + 1, "Cuerpo:");
+                sentencias(m.cuerpo(), nivel + 2, sb);
             }
         }
-        return sb.toString();
     }
 
     private static void expresion(Expr e, int nivel, StringBuilder sb) {

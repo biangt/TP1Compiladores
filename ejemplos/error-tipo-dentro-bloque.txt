@@ -1,0 +1,8 @@
+void main(){
+  int x; bool b;
+  b = true;
+  while (b) {
+    x = true;
+    b = false;
+  }
+}

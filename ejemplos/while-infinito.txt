@@ -1,0 +1,1 @@
+void main(){bool b; b = true; while (b) { b = true; }}

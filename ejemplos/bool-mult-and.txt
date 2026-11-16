@@ -1,0 +1,1 @@
+bool main(){bool a; bool b; a = true; b = false; return a * b;}

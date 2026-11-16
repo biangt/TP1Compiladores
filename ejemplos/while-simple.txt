@@ -1,0 +1,9 @@
+int main() {
+  int n; bool a; bool b; bool c;
+  a = true; b = true; c = true; n = 0;
+  while (a + b + c) {
+    n = n + 1;
+    c = b; b = a; a = false;
+  }
+  return n;
+}

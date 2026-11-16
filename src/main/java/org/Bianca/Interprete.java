@@ -3,6 +3,8 @@ package org.Bianca;
 import org.Bianca.Ast.*;
 import org.Bianca.TablaSimbolos.Simbolo;
 
+import java.util.List;
+
 /**
  * Intérprete / evaluador (punto 6): recorre el AST y EJECUTA el programa.
  * Usa la tabla de símbolos para guardar y leer el valor de cada variable.
@@ -16,7 +18,23 @@ public final class Interprete {
      * (Integer, Boolean, o null si es "return;" o si main termina sin return).
      */
     public static Object ejecutar(Programa p) {
-        for (Sentencia s : p.sentencias()) {
+        Retornado r = ejecutarLista(p.sentencias());
+        return (r == null) ? null : r.valor();     // null = main terminó sin ningún return
+    }
+
+    /** Tope de vueltas de un while: si se pasa, casi seguro es un ciclo infinito y el intérprete se detiene. */
+    private static final int MAX_VUELTAS = 1_000_000;
+
+    /** "Se ejecutó un return y este es su valor" (valor == null si fue "return;"). */
+    private record Retornado(Object valor) { }
+
+    /**
+     * Ejecuta una lista de sentencias (main entero, o el bloque de un if / while).
+     * Devuelve null si la lista terminó normalmente, o un Retornado si se ejecutó un return:
+     * así el return de adentro de un if / while "sube" hasta main y corta TODO lo que faltaba.
+     */
+    private static Retornado ejecutarLista(List<Sentencia> sentencias) {
+        for (Sentencia s : sentencias) {
             if (s instanceof Asignacion a) {
                 Object valor = evaluar(a.valor());
                 Simbolo var = a.variable().simbolo;   // la ficha ya está colgada del nodo
@@ -24,10 +42,31 @@ public final class Interprete {
                 var.asignada = true;
             } else if (s instanceof Retorno r) {
                 // return termina la función: lo que haya después NO se ejecuta
-                return (r.valor() == null) ? null : evaluar(r.valor());
+                return new Retornado((r.valor() == null) ? null : evaluar(r.valor()));
+            } else if (s instanceof Si si) {
+                // se evalúa la condición y se ejecuta UNO de los dos bloques
+                List<Sentencia> bloque = (Boolean) evaluar(si.condicion()) ? si.entonces() : si.sino();
+                if (bloque != null) {                 // un if sin else y condición false: no hace nada
+                    Retornado r = ejecutarLista(bloque);
+                    if (r != null) {
+                        return r;
+                    }
+                }
+            } else if (s instanceof Mientras m) {
+                int vueltas = 0;
+                while ((Boolean) evaluar(m.condicion())) {     // la condición se vuelve a evaluar en cada vuelta
+                    if (++vueltas > MAX_VUELTAS) {
+                        throw new Errores.Ejecucion("Error de ejecución en línea " + m.linea()
+                                + ": el while se repitió más de " + MAX_VUELTAS + " veces (¿ciclo infinito?)");
+                    }
+                    Retornado r = ejecutarLista(m.cuerpo());
+                    if (r != null) {
+                        return r;
+                    }
+                }
             }
         }
-        return null;   // se acabaron las sentencias sin ningún return
+        return null;
     }
 
     /** Calcula el valor de una expresión recorriendo el árbol de abajo hacia arriba. */
@@ -47,10 +86,20 @@ public final class Interprete {
             return s.valor;
         }
         if (e instanceof Suma s) {
-            return (Integer) evaluar(s.izq()) + (Integer) evaluar(s.der());
+            Object izq = evaluar(s.izq());
+            Object der = evaluar(s.der());
+            if (izq instanceof Boolean a && der instanceof Boolean b) {
+                return a || b;                       // bool + bool = OR
+            }
+            return (Integer) izq + (Integer) der;
         }
         if (e instanceof Mult m) {
-            return (Integer) evaluar(m.izq()) * (Integer) evaluar(m.der());
+            Object izq = evaluar(m.izq());
+            Object der = evaluar(m.der());
+            if (izq instanceof Boolean a && der instanceof Boolean b) {
+                return a && b;                       // bool * bool = AND
+            }
+            return (Integer) izq * (Integer) der;
         }
         throw new IllegalStateException("Nodo desconocido: " + e);
     }

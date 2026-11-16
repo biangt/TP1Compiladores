@@ -59,6 +59,9 @@ ESPACIO = [ \t\r\n\f﻿]+
 "void"     { return simbolo(sym.VOID); }
 "main"     { return simbolo(sym.MAIN); }
 "return"   { return simbolo(sym.RETURN); }
+"if"       { return simbolo(sym.IF); }
+"else"     { return simbolo(sym.ELSE); }
+"while"    { return simbolo(sym.WHILE); }
 "true"     { return simbolo(sym.TRUE); }
 "false"    { return simbolo(sym.FALSE); }
 

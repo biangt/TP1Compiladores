@@ -1,0 +1,1 @@
+void main(){bool b; b = true; b = b * 1;}

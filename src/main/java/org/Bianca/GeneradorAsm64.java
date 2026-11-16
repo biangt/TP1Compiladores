@@ -84,19 +84,20 @@ public final class GeneradorAsm64 {
             instr("movq", "$0, " + offsetVariable.get(s) + "(%rbp)");
         }
 
-        boolean huboReturn = false;
+        boolean terminaEnReturn = false;
         for (Instruccion i : codigo.instrucciones()) {
             linea("");
-            linea("    # " + i);                   // la instrucción de 3 direcciones, como comentario
-            traducir(i);
-            if (i.operacion() == Operacion.RETORNAR_INT || i.operacion() == Operacion.RETORNAR_BOOL
-                    || i.operacion() == Operacion.RETORNAR_VOID) {
-                huboReturn = true;
+            if (i.operacion() != Operacion.ETIQUETA) {
+                linea("    # " + i);               // la instrucción de 3 direcciones, como comentario
             }
+            traducir(i);
+            terminaEnReturn = i.operacion() == Operacion.RETORNAR_INT || i.operacion() == Operacion.RETORNAR_BOOL
+                    || i.operacion() == Operacion.RETORNAR_VOID;
         }
 
-        // Si main termina sin ningún return, igual hay que cerrar el marco y devolver 0
-        if (!huboReturn) {
+        // Si la última instrucción no es un return, el programa puede "caerse" por el final de main
+        // (sin return, o con return solo dentro de un if): hay que cerrar el marco y devolver 0
+        if (!terminaEnReturn) {
             linea("");
             linea("    # fin de main sin return");
             epilogo(null);
@@ -120,13 +121,35 @@ public final class GeneradorAsm64 {
                 instr("imul", ubicacion(i.arg2()) + ", %r10");
                 instr("mov", "%r10, " + ubicacion(i.resultado()));
             }
+            case SUMA_BOOL -> {                                   // bool + bool = OR (0 o 1, nunca 2)
+                instr("mov", ubicacion(i.arg1()) + ", %r10");
+                instr("or", ubicacion(i.arg2()) + ", %r10");
+                instr("mov", "%r10, " + ubicacion(i.resultado()));
+            }
+            case MULT_BOOL -> {                                   // bool * bool = AND
+                instr("mov", ubicacion(i.arg1()) + ", %r10");
+                instr("and", ubicacion(i.arg2()) + ", %r10");
+                instr("mov", "%r10, " + ubicacion(i.resultado()));
+            }
             case ASIGNAR_INT, ASIGNAR_BOOL -> {
                 instr("mov", ubicacion(i.arg1()) + ", %r10");
                 instr("mov", "%r10, " + ubicacion(i.resultado()));
             }
             case RETORNAR_INT, RETORNAR_BOOL -> epilogo(i.arg1());
             case RETORNAR_VOID -> epilogo(null);
+            case ETIQUETA -> linea(etiqueta(i.resultado()) + ":");           // .L1:
+            case SALTAR -> instr("jmp", etiqueta(i.resultado()));            // salta siempre
+            case SALTAR_SI_FALSO -> {                                        // salta si la condición vale 0 (false)
+                instr("mov", ubicacion(i.arg1()) + ", %r10");                // se pasa por r10: así sirve también si es una constante
+                instr("cmp", "$0, %r10");                                    // compara r10 con 0
+                instr("je", etiqueta(i.resultado()));                        // je = "jump if equal": salta si era 0
+            }
         }
+    }
+
+    /** Nombre de una etiqueta en assembly. El prefijo ".L" hace que sea local (no choca con "main"). */
+    private String etiqueta(Operando o) {
+        return ".L" + ((Operando.Etiqueta) o).numero();
     }
 
     /** Devuelve el valor en %rax y desarma el marco (leave) antes de volver (ret). */

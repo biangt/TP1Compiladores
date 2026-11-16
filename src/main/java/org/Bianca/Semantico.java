@@ -3,13 +3,16 @@ package org.Bianca;
 import org.Bianca.Ast.*;
 import org.Bianca.TablaSimbolos.Simbolo;
 
+import java.util.List;
+
 /**
  * Análisis semántico (nota del punto 6): arma la tabla de símbolos y verifica
  * que el programa tenga sentido. Detecta exactamente tres errores:
  *
  *   1. variable REDECLARADA      (la detecta TablaSimbolos.declarar)
  *   2. variable NO DECLARADA     (la detecta TablaSimbolos.buscar)
- *   3. error de TIPO             (la detecta esta clase: int/bool mezclados)
+ *   3. error de TIPO             (la detecta esta clase: int/bool mezclados; int+int y bool+bool están bien;
+ *                                 y la condición de un if / while que no es bool)
  *
  * Recorre TODAS las sentencias, incluso las que están después de un return.
  * Al terminar, cada nodo Declaracion y cada nodo Var quedó apuntando a su Simbolo.
@@ -28,7 +31,17 @@ public final class Semantico {
         }
 
         // 2) Cada sentencia se revisa contra la tabla
-        for (Sentencia s : p.sentencias()) {
+        verificarSentencias(p.sentencias(), p.tipoRetorno(), tabla);
+        return tabla;
+    }
+
+    /**
+     * Revisa una lista de sentencias. Los bloques de if / while son listas de sentencias, así que
+     * para revisarlos esta misma función se llama a sí misma (recursión). Como todas las variables
+     * se declaran al principio de main, no hay variables locales de bloque: la tabla es una sola.
+     */
+    private static void verificarSentencias(List<Sentencia> sentencias, Tipo tipoMain, TablaSimbolos tabla) {
+        for (Sentencia s : sentencias) {
             if (s instanceof Asignacion a) {
                 Simbolo destino = resolver(a.variable(), tabla);           // la variable de la izquierda
                 Tipo origen = tipoDe(a.valor(), tabla);                    // tipo de la expresión
@@ -38,10 +51,27 @@ public final class Semantico {
                             + ") a la variable '" + destino.nombre + "' de tipo " + nombre(destino.tipo));
                 }
             } else if (s instanceof Retorno r) {
-                verificarRetorno(p.tipoRetorno(), r, tabla);
+                verificarRetorno(tipoMain, r, tabla);
+            } else if (s instanceof Si si) {
+                verificarCondicion("if", si.condicion(), si.linea(), tabla);
+                verificarSentencias(si.entonces(), tipoMain, tabla);
+                if (si.sino() != null) {
+                    verificarSentencias(si.sino(), tipoMain, tabla);
+                }
+            } else if (s instanceof Mientras m) {
+                verificarCondicion("while", m.condicion(), m.linea(), tabla);
+                verificarSentencias(m.cuerpo(), tipoMain, tabla);
             }
         }
-        return tabla;
+    }
+
+    /** La condición de un if / while tiene que ser bool (true, false, una variable bool, a + b, a * b...). */
+    private static void verificarCondicion(String palabra, Expr condicion, int linea, TablaSimbolos tabla) {
+        Tipo tipo = tipoDe(condicion, tabla);
+        if (tipo != Tipo.BOOL) {
+            throw new Errores.Semantico("Error semántico en línea " + linea + ": la condición del '" + palabra
+                    + "' debe ser bool, pero '" + ImprimirAst.texto(condicion) + "' es " + nombre(tipo));
+        }
     }
 
     private static void verificarRetorno(Tipo esperado, Retorno r, TablaSimbolos tabla) {
@@ -89,23 +119,22 @@ public final class Semantico {
         return v.simbolo;
     }
 
-    /** + y * solo operan enteros y dan un entero. Si un operando es bool, el error muestra su valor completo. */
+    /**
+     * + y * piden que los DOS operandos tengan el mismo tipo y el resultado conserva ese tipo:
+     *   int  op int  -> int   (suma / producto normales)
+     *   bool op bool -> bool  (+ funciona como OR, * funciona como AND)
+     * Mezclar int con bool es error de tipo.
+     */
     private static Tipo tipoOperacion(OpBinaria op, TablaSimbolos tabla) {
         Tipo izq = tipoDe(op.izq(), tabla);
         Tipo der = tipoDe(op.der(), tabla);
-        if (izq != Tipo.INT) {
-            throw errorOperando(op, op.izq(), izq);
+        if (izq != der) {
+            throw new Errores.Semantico("Error semántico en línea " + op.linea() + ": el operador '" + op.operador()
+                    + "' necesita operandos del mismo tipo, pero '" + ImprimirAst.texto(op.izq()) + "' es "
+                    + nombre(izq) + " y '" + ImprimirAst.texto(op.der()) + "' es " + nombre(der)
+                    + " (en la expresión '" + ImprimirAst.texto(op) + "')");
         }
-        if (der != Tipo.INT) {
-            throw errorOperando(op, op.der(), der);
-        }
-        return Tipo.INT;
-    }
-
-    private static Errores.Semantico errorOperando(OpBinaria op, Expr operando, Tipo tipo) {
-        return new Errores.Semantico("Error semántico en línea " + op.linea() + ": el operador '" + op.operador()
-                + "' solo se puede usar con enteros, pero '" + ImprimirAst.texto(operando) + "' es "
-                + nombre(tipo) + " (en la expresión '" + ImprimirAst.texto(op) + "')");
+        return izq;
     }
 
     private static String nombre(Tipo t) {

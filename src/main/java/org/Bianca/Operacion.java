@@ -12,11 +12,16 @@ import org.Bianca.Ast.Tipo;
 public enum Operacion {
     SUMA_INT("+"),
     MULT_INT("*"),
+    SUMA_BOOL("+"),       // bool + bool  =  OR
+    MULT_BOOL("*"),       // bool * bool  =  AND
     ASIGNAR_INT("="),
     ASIGNAR_BOOL("="),
     RETORNAR_INT("return"),
     RETORNAR_BOOL("return"),
-    RETORNAR_VOID("return");
+    RETORNAR_VOID("return"),
+    ETIQUETA(":"),                  // L1:            marca un lugar del código al que se puede saltar
+    SALTAR("goto"),                 // goto L1        salta SIEMPRE a la etiqueta
+    SALTAR_SI_FALSO("ifFalse");     // ifFalse c goto L1   salta SOLO si la condición vale false
 
     /** Cómo se escribe al imprimir la instrucción. */
     public final String simbolo;

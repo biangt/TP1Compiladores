@@ -13,7 +13,9 @@ import java.util.List;
  *    |-- Declaracion              DECLARA una variable   (int x;)  -> crea su ficha en la tabla
  *    |-- Sentencia
  *    |     |-- Asignacion         x = expr;
- *    |     `-- Retorno            return expr;   /   return;
+ *    |     |-- Retorno            return expr;   /   return;
+ *    |     |-- Si                 if (cond) { ... }   /   if (cond) { ... } else { ... }
+ *    |     `-- Mientras           while (cond) { ... }
  *    `-- Expr                     cualquier cosa que produce un valor
  *          |-- Num                3
  *          |-- Bool               true / false
@@ -88,13 +90,24 @@ public final class Ast {
 
     /* ---------------- Sentencias ---------------- */
 
-    /** Cualquier sentencia: asignación o return. */
+    /** Cualquier sentencia: asignación, return, if o while. */
     public interface Sentencia extends Nodo { }
 
     /** x = expr;   "variable" es el nodo Var del lado izquierdo (también apunta a su símbolo). */
     public record Asignacion(Var variable, Expr valor, int linea) implements Sentencia { }
     /** valor == null significa "return;" (sin valor). */
     public record Retorno(Expr valor, int linea) implements Sentencia { }                     // return expr;
+
+    /**
+     * if (condicion) { entonces } else { sino }
+     * "sino" es null cuando el if no tiene else. Cada bloque es una lista de sentencias, que a su vez
+     * pueden ser otros if / while (así se anidan).
+     */
+    public record Si(Expr condicion, List<Sentencia> entonces, List<Sentencia> sino, int linea)
+            implements Sentencia { }
+
+    /** while (condicion) { cuerpo }: repite el cuerpo mientras la condición sea true. */
+    public record Mientras(Expr condicion, List<Sentencia> cuerpo, int linea) implements Sentencia { }
 
     /* ---------------- Programa ---------------- */
 

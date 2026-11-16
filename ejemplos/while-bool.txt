@@ -1,0 +1,1 @@
+bool main(){bool a; bool r; a = true; r = false; while (a) { r = r + true; a = false; } return r;}

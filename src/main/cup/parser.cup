@@ -34,6 +34,7 @@ parser code {:
 
 /* ---------- Terminales: son los tokens que produce el Lexer ---------- */
 terminal INT, BOOL, VOID, MAIN, RETURN, TRUE, FALSE;
+terminal IF, ELSE, WHILE;
 terminal PLUS, TIMES, ASSIGN;
 terminal LPAREN, RPAREN, LBRACE, RBRACE, SEMI;
 terminal Integer NUMBER;   /* este token trae un Integer como valor */
@@ -46,6 +47,7 @@ non terminal List<Declaracion> declaraciones;
 non terminal Declaracion declaracion;
 non terminal List<Sentencia> sentencias;
 non terminal Sentencia sentencia;
+non terminal List<Sentencia> bloque;
 non terminal Expr expr;
 
 /* ---------- Precedencia: resuelve la ambigüedad de E -> E + E | E * E ---------- */
@@ -88,14 +90,26 @@ sentencias ::= sentencias:lista sentencia:s
                {: RESULT = new ArrayList<Sentencia>(); :}
              ;
 
-/* x = expr;    return expr;    return; */
+/* x = expr;    return expr;    return;    if (...) {...}    if (...) {...} else {...}    while (...) {...} */
 sentencia ::= ID:nombre ASSIGN expr:e SEMI
               {: RESULT = new Asignacion(new Var(nombre, nombreleft + 1), e, nombreleft + 1); :}
             | RETURN:r expr:e SEMI
               {: RESULT = new Retorno(e, rleft + 1); :}
             | RETURN:r SEMI
               {: RESULT = new Retorno(null, rleft + 1); :}
+            | IF:i LPAREN expr:c RPAREN bloque:b
+              {: RESULT = new Si(c, b, null, ileft + 1); :}
+            | IF:i LPAREN expr:c RPAREN bloque:b1 ELSE bloque:b2
+              {: RESULT = new Si(c, b1, b2, ileft + 1); :}
+            | WHILE:w LPAREN expr:c RPAREN bloque:b
+              {: RESULT = new Mientras(c, b, wleft + 1); :}
             ;
+
+/* Un bloque son llaves con cero o más sentencias. Las llaves son OBLIGATORIAS en if/else/while:
+   así nunca hay duda de a qué "if" pertenece un "else" (el problema del "else colgante"). */
+bloque ::= LBRACE sentencias:s RBRACE
+           {: RESULT = s; :}
+         ;
 
 /* Expresiones: suma, producto, paréntesis, número, true/false y variable */
 expr ::= expr:a PLUS:o expr:b   {: RESULT = new Suma(a, b, oleft + 1); :}
