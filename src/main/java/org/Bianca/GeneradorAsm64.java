@@ -22,6 +22,7 @@ import java.util.Map;
  *      y el resultado se guarda de nuevo en la pila. Se pasa por un registro porque x86 NO permite
  *      hacer una operación directamente entre dos posiciones de memoria.
  *   3. El valor de retorno de una función se deja en %rax (convención de llamada de x86-64).
+ *   4. Antes de volver, el programa MUESTRA el valor que devuelve main llamando a printf / puts de C.
  */
 public final class GeneradorAsm64 {
 
@@ -29,6 +30,7 @@ public final class GeneradorAsm64 {
     private final Map<Simbolo, Integer> offsetVariable = new IdentityHashMap<>();
     private final Map<Integer, Integer> offsetTemporal = new HashMap<>();
     private int proximoOffset = 0;        // lo último que se reservó: 0, -8, -16, ...
+    private boolean imprimeResultado = false;   // ¿algún return devuelve un valor (y por lo tanto usa printf / puts)?
 
     private final StringBuilder sb = new StringBuilder();
 
@@ -103,6 +105,18 @@ public final class GeneradorAsm64 {
             epilogo(null);
         }
 
+        // Textos que usa la impresión del resultado (solo si algún return devuelve un valor)
+        if (imprimeResultado) {
+            linea("");
+            linea("    .section .rodata");
+            linea(".Lformato_int:");
+            linea("    .string \"%ld\"");
+            linea(".Ltexto_true:");
+            linea("    .string \"true\"");
+            linea(".Ltexto_false:");
+            linea("    .string \"false\"");
+        }
+
         // Avisa al linker que este programa no necesita una pila ejecutable (evita un warning de gcc)
         linea("");
         linea("    .section .note.GNU-stack,\"\",@progbits");
@@ -157,10 +171,38 @@ public final class GeneradorAsm64 {
         if (valor == null) {
             instr("mov", "$0, %rax");
         } else {
-            instr("mov", ubicacion(valor) + ", %rax");
+            imprimir(valor);                                  // primero se muestra el resultado en pantalla...
+            instr("mov", ubicacion(valor) + ", %rax");        // ...y después se deja en %rax (código de salida)
         }
         instr("leave", "");
         instr("ret", "");
+    }
+
+    /**
+     * Muestra en pantalla el valor que devuelve main, llamando a las funciones de C que trae gcc:
+     *   int   ->  printf("%ld", valor)       (imprime el número)
+     *   bool  ->  puts("true" o "false")     (elige el texto según el valor)
+     * En x86-64 los argumentos de una función se pasan en registros: el 1.º en %rdi, el 2.º en %rsi.
+     * %rax = 0 le avisa a printf que no hay argumentos decimales (convención de llamada).
+     * La pila ya está alineada a 16 bytes (lo garantiza "enter" con el tamaño que calculamos), como exige call.
+     */
+    private void imprimir(Operando valor) {
+        imprimeResultado = true;
+        if (valor.tipo() == Ast.Tipo.BOOL) {
+            instr("mov", ubicacion(valor) + ", %r10");
+            instr("lea", ".Ltexto_false(%rip), %rdi");           // rdi = "false"
+            instr("lea", ".Ltexto_true(%rip), %r11");            // r11 = "true"
+            instr("test", "%r10, %r10");                         // ¿el valor es 0?
+            instr("cmovne", "%r11, %rdi");                       // si NO es 0, rdi = "true"
+            instr("call", "puts@PLT");                           // puts agrega el salto de línea solo
+        } else {
+            instr("lea", ".Lformato_int(%rip), %rdi");           // rdi = "%ld"
+            instr("mov", ubicacion(valor) + ", %rsi");           // rsi = el número a mostrar
+            instr("xor", "%eax, %eax");                          // rax = 0
+            instr("call", "printf@PLT");
+            instr("mov", "$10, %edi");                           // salto de línea: putchar('\n')
+            instr("call", "putchar@PLT");
+        }
     }
 
     /**

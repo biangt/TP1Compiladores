@@ -1,51 +1,102 @@
-# Mini-compilador (Pre-Proyecto de Compiladores)
+# Mini-compilador en Java (JFlex + CUP)
 
-Etapas: `texto → Lexer (JFlex) → tokens → parser (CUP) → AST → semántica (tabla de símbolos) → código de tres direcciones → intérprete / assembly x86-64`.
+- **Materia:** Compiladores — Ingeniería en Sistemas de Información, UNViMe
+- **Grupo:**
+  - Torres Gil, Bianca
+  - Rivarola, Agustín
 
-## Cómo ejecutarlo
+Compila un lenguaje chico (una función `main`, variables `int` y `bool`, asignaciones, `+`, `*`, `if`/`else`, `while` y `return`) y genera **assembly x86-64 (GNU)**, que se ensambla con `gcc`.
 
-- En IntelliJ: ejecutar `org.Bianca.Main` (sin argumentos corre `ejemplos/ejemplo1.txt` y `ejemplo2.txt`).
-  Con argumentos: `Main ejemplos/ejemplo3.txt ejemplos/error-tipos.txt`.
-- Con Maven: `mvn compile` (genera `Lexer.java` desde `src/main/jflex/lexico.flex` automáticamente).
+```
+texto -> Lexer (JFlex) -> tokens -> parser (CUP) -> AST -> semántica (tabla de símbolos)
+      -> código de tres direcciones -> intérprete  /  assembly x86-64 -> gcc -> ejecutable
+```
 
-## Archivos
+## Herramientas utilizadas
 
-| Archivo | Punto del enunciado |
+| Herramienta | Para qué |
 |---|---|
-| `src/main/cup/parser.cup` | 1 (gramática), 4 (parser), 5 (construcción del AST) |
-| `src/main/jflex/lexico.flex` | 2 (expresiones regulares), 3 (analizador léxico) |
-| `Ast.java`, `ImprimirAst.java` | 5 (AST) |
-| `TablaSimbolos.java`, `Semantico.java` | 6 (tabla de símbolos y verificaciones) |
-| `GeneradorTresDirecciones.java`, `CodigoTresDirecciones.java`, `Instruccion.java`, `Operacion.java`, `Operando.java` | código intermedio de tres direcciones |
-| `Interprete.java` | 6 (evaluador) |
-| `GeneradorAsm.java` | 7 (pseudo-assembly de pila, versión anterior) |
-| `GeneradorAsm64.java` | assembly x86-64 (GNU), generado desde la lista de tres direcciones |
-| `Errores.java`, `Main.java` | manejo de errores / programa principal |
+| Java 17 o superior (se desarrolló con JDK 24) | lenguaje del compilador |
+| Maven | compila el proyecto y descarga las librerías |
+| JFlex 1.9.1 (`jflex-maven-plugin`) | genera el analizador léxico `Lexer.java` a partir de `lexico.flex` (Maven lo hace solo en cada build) |
+| CUP 11b (`java-cup-11b`) | genera el parser `parser.java` y `sym.java` a partir de `parser.cup` (a mano, ver más abajo) |
+| `java-cup-runtime` 11b-20160615 | librería que necesitan el Lexer y el parser (la baja Maven) |
+| gcc (GNU) en Linux / WSL | ensambla el `.s` y lo convierte en un ejecutable |
+| IntelliJ IDEA, Git | desarrollo y control de versiones |
 
-## Errores que detecta la semántica
-
-1. Variable **redeclarada** (`int x; int x;`)
-2. Variable **no declarada** (`x = z + 1;`)
-3. Error de **tipo** (`x = true;`, `1 + true`, `true * 1`, `return` de otro tipo, condición de `if`/`while` que no es `bool`): el mensaje muestra el valor/expresión completo.
-
-Programas de prueba: `ejemplos/error-variable-redeclarada.txt`, `error-variable-no-declarada.txt`,
-`error-tipos.txt`, `error-tipo-bool-en-suma.txt`, `error-tipo-bool-por-int.txt`, `error-tipo-num-a-bool.txt`, `error-tipo-return.txt`.
-
-## if / else y while
+## El lenguaje
 
 ```
-if (condicion) { ... }
-if (condicion) { ... } else { ... }
-while (condicion) { ... }
+int main() {
+  int n; bool a;              // todas las declaraciones van primero (al menos una)
+  a = true; n = 0;
+  while (a) {                 // llaves obligatorias en if / else / while
+    if (a) { n = n + 1; } else { n = n + 2; }
+    a = false;
+  }
+  return n;
+}
 ```
 
-- Las **llaves son obligatorias** (así un `else` nunca queda ambiguo).
-- La **condición debe ser `bool`**: `true`, una variable `bool`, o `a + b` / `a * b` con booleanos. Una condición `int` es error semántico.
-- Los bloques pueden contener asignaciones, `return` y más `if` / `while` (anidados). Las variables se declaran todas al principio de `main`.
-- Un `return` dentro de un `if` / `while` termina `main` en ese momento.
-- El intérprete corta un `while` que se repita más de 1.000.000 de veces (ciclo infinito). El assembly generado, en cambio, sí se colgaría.
+- `main` puede devolver `int`, `bool` o `void` (sin valor).
+- **Operadores:** `+` y `*`, con paréntesis. Piden operandos del **mismo tipo**:
 
-**Código de tres direcciones.** Se agregan ETIQUETAS (`L1:`) y SALTOS: `goto L1` (siempre) e `ifFalse c goto L1` (solo si `c` es false).
+| Operación | Resultado | Significado |
+|---|---|---|
+| `int + int`, `int * int` | `int` | suma y producto normales |
+| `bool + bool` | `bool` | **OR** (`true + true` da `true`, no 2) |
+| `bool * bool` | `bool` | **AND** |
+| `int` con `bool` | error semántico | tipos mezclados |
+
+- `true` se guarda como 1 y `false` como 0.
+- **La condición de `if` / `while` debe ser `bool`** (`true`, una variable `bool`, `a + b`, `a * b`...).
+- Los bloques `{ ... }` pueden tener asignaciones, `return` y más `if` / `while` (anidados). Un `return` dentro de un bloque termina `main`.
+- No hay comparaciones (`<`, `==`): para que un `while` termine se usan variables `bool` como estado (ver `ejemplos/while-simple.txt`).
+
+## Cómo compilar
+
+Desde la carpeta del proyecto:
+
+```
+mvn compile
+```
+
+Maven genera `Lexer.java` con JFlex y compila todo en `target/classes`.
+
+## Cómo ejecutar el compilador (por consola)
+
+Recibe uno o más archivos de programa. **Windows (PowerShell):**
+
+```
+java -cp "target/classes;$HOME\.m2\repository\com\github\vbmacher\java-cup-runtime\11b-20160615\java-cup-runtime-11b-20160615.jar" org.Bianca.Main ejemplos/ejemplo4.txt
+```
+
+**Linux / WSL:**
+
+```
+java -cp "target/classes:$HOME/.m2/repository/com/github/vbmacher/java-cup-runtime/11b-20160615/java-cup-runtime-11b-20160615.jar" org.Bianca.Main ejemplos/ejemplo4.txt
+```
+
+(En IntelliJ: ejecutar `org.Bianca.Main` con los archivos como *Program arguments*.)
+
+Para cada programa se muestra: el AST, el código de tres direcciones, el resultado del intérprete, la tabla de símbolos y el assembly. El assembly también queda guardado en `salida/<nombre>.s`.
+
+## Cómo generar y correr el ejecutable (gcc)
+
+El assembly es de Linux (x86-64, sintaxis GNU). En Linux o en WSL/Ubuntu:
+
+```
+gcc salida/ejemplo4.s -o ejemplo4
+./ejemplo4          # muestra el resultado de main en pantalla
+echo $?             # el valor de main también queda como código de salida (0 a 255)
+```
+
+El programa generado **muestra el resultado con `printf`** (los `bool` como `true` / `false`) y además lo deja como código de salida. Si `main` es `void`, no muestra nada.
+En WSL, si gcc falla con `cannot find Scrt1.o`, falta `sudo apt install libc6-dev`.
+
+### Cómo se traduce `if` / `while`
+
+El código de tres direcciones usa **etiquetas** (`L1:`) y **saltos**: `goto L1` (siempre) e `ifFalse c goto L1` (solo si `c` es false). En assembly: `jmp .L1` y `cmp $0, ...` + `je .L1`.
 
 ```
 if (c) { A } else { B }          while (c) { A }
@@ -58,43 +109,63 @@ if (c) { A } else { B }          while (c) { A }
   L1:
 ```
 
-**Assembly.** `ifFalse c goto L` → `mov c,%r10 ; cmp $0,%r10 ; je .L` y `goto L` → `jmp .L`. Las etiquetas se escriben `.L1:`.
+## Casos de prueba (`ejemplos/`)
 
-Programas de prueba: `ejemplos/if-simple.txt`, `if-else.txt`, `if-anidado.txt`, `if-return.txt`, `while-simple.txt`, `while-con-if.txt`, `while-bool.txt`, `while-infinito.txt`,
-`error-if-condicion-int.txt`, `error-while-condicion-int.txt`, `error-tipo-dentro-bloque.txt`, `error-sintaxis-sin-llaves.txt`.
+Se corren con el comando de la sección *Cómo ejecutar*. Resultado esperado:
 
-## Si modificas `parser.cup`
-
-`parser.java` y `sym.java` (en `src/main/java/org/Bianca/`) son archivos GENERADOS por CUP y hay que regenerarlos a mano:
-
-```
-java -jar java-cup-11b.jar -destdir src/main/java -parser parser -symbols sym src/main/cup/parser.cup
-```
-
-CUP deja los dos archivos directamente en `src/main/java`; moverlos a `src/main/java/org/Bianca/`.
-`Lexer.java`, en cambio, lo regenera Maven solo.
-
-**Importante:** al agregar `if` / `else` / `while` cambiaron los tokens y las reglas, así que `parser.java` y `sym.java` hay que regenerarlos con este comando antes de compilar.
-
-## Generar y ejecutar el assembly
-
-`Main` escribe el assembly en `salida/<nombre>.s`. Para ensamblarlo y correrlo (Linux / WSL / MinGW con gcc):
-
-```
-gcc salida/ejemplo4.s -o ejemplo4
-./ejemplo4 ; echo $?      # el valor que devuelve main queda como código de salida
-```
-
-## Booleanos
-
-`true` se guarda como 1 y `false` como 0. Los operadores `+` y `*` piden dos operandos del **mismo tipo**:
-
-| Operación | Resultado | Significado |
+| Archivo | Qué prueba | Resultado |
 |---|---|---|
-| `int + int`, `int * int` | `int` | suma y producto normales |
-| `bool + bool` | `bool` | **OR** (`true + true` da `true`, no 2) |
-| `bool * bool` | `bool` | **AND** |
-| `int` con `bool` | error semántico | tipos mezclados |
+| `ejemplo1.txt` | `void main`, asignaciones | sin valor |
+| `ejemplo2.txt` | `return` temprano, variable usada sin asignar (aviso) | `1` |
+| `ejemplo3.txt` | `bool main`, mezcla de variables `int` y `bool` | `true` |
+| `ejemplo4.txt` | enteros: `b = a * (3 + a)` | `11` |
+| `bool-suma-or.txt` | `true + false` (OR) | `true` |
+| `bool-mult-and.txt` | `true * false` (AND) | `false` |
+| `bool-mixto.txt` | `a * b + true` | `true` |
+| `bool-suma-falsa.txt` | `false + false` | `false` |
+| `if-simple.txt` | `if` sin `else` | `10` |
+| `if-else.txt` | `if` / `else` | `2` |
+| `if-anidado.txt` | `if` dentro de `if` | `2` |
+| `if-return.txt` | `return` dentro de un `if` | `5` |
+| `while-simple.txt` | `while` con tres booleanos que "se corren" | `3` |
+| `while-con-if.txt` | `if` dentro de un `while` | `21` |
+| `while-bool.txt` | `while` con `bool main` | `true` |
+| `while-infinito.txt` | ciclo infinito: el intérprete lo corta | error de ejecución |
 
-En el código de tres direcciones son `SUMA_BOOL` / `MULT_BOOL` y en assembly se traducen a `or` / `and`.
-Programas de prueba: `ejemplos/bool-suma-or.txt`, `bool-mult-and.txt`, `bool-mixto.txt`, `bool-suma-falsa.txt`.
+### Programas que deben dar error
+
+| Archivo | Error |
+|---|---|
+| `error-lexico.txt` | léxico: carácter no válido |
+| `error-sintaxis.txt` | sintáctico |
+| `error-sintaxis-sin-llaves.txt` | sintáctico: `if` sin llaves |
+| `error-variable-redeclarada.txt` | semántico: variable redeclarada |
+| `error-variable-no-declarada.txt` | semántico: variable no declarada |
+| `error-tipos.txt`, `error-tipo-num-a-bool.txt`, `error-tipo-return.txt` | semántico: tipos incompatibles en asignación / `return` |
+| `error-tipo-bool-en-suma.txt`, `error-tipo-bool-por-int.txt` | semántico: `int` mezclado con `bool` en `+` / `*` |
+| `error-if-condicion-int.txt`, `error-while-condicion-int.txt` | semántico: la condición no es `bool` |
+| `error-tipo-dentro-bloque.txt` | semántico: error de tipo dentro de un bloque |
+
+## Archivos
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main/jflex/lexico.flex` | expresiones regulares y analizador léxico |
+| `src/main/cup/parser.cup` | gramática, parser y construcción del AST |
+| `Ast.java`, `ImprimirAst.java` | árbol sintáctico y su impresión |
+| `TablaSimbolos.java`, `Semantico.java` | tabla de símbolos y verificaciones |
+| `GeneradorTresDirecciones.java`, `CodigoTresDirecciones.java`, `Instruccion.java`, `Operacion.java`, `Operando.java` | código intermedio |
+| `Interprete.java` | ejecuta el programa sobre el AST |
+| `GeneradorAsm.java` | pseudo-assembly de pila (versión anterior) |
+| `GeneradorAsm64.java` | assembly x86-64 (GNU) desde la lista de tres direcciones |
+| `Errores.java`, `Main.java` | errores y programa principal |
+
+## Si se modifica `parser.cup`
+
+`parser.java` y `sym.java` (en `src/main/java/org/Bianca/`) los genera CUP y hay que regenerarlos a mano. Con el jar `java-cup-11b.jar`, desde la carpeta del proyecto:
+
+```
+java -cp java-cup-11b.jar java_cup.Main -destdir src/main/java -parser parser -symbols sym src/main/cup/parser.cup
+```
+
+CUP deja los dos archivos en `src/main/java`: hay que moverlos a `src/main/java/org/Bianca/`. `Lexer.java`, en cambio, lo regenera Maven solo. No se editan a mano los archivos de `target/`.
