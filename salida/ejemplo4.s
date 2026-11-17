@@ -28,8 +28,22 @@ main:
     mov %r10, -40(%rbp)
 
     # return t3
+    lea .Lformato_int(%rip), %rdi
+    mov -40(%rbp), %rsi
+    xor %eax, %eax
+    call printf@PLT
+    mov $10, %edi
+    call putchar@PLT
     mov -40(%rbp), %rax
     leave
     ret
+
+    .section .rodata
+.Lformato_int:
+    .string "%ld"
+.Ltexto_true:
+    .string "true"
+.Ltexto_false:
+    .string "false"
 
     .section .note.GNU-stack,"",@progbits

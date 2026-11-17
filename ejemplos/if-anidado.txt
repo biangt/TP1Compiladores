@@ -1,7 +1,7 @@
 int main() {
   int r; bool a; bool b;
   a = true; b = false; r = 0;
-  if (a) {
+  if (4) {
     if (b) { r = 1; } else { r = 2; }
   } else {
     r = 3;
